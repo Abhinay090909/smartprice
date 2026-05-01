@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartPrice — Compare Smartphones</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="logo">Smart<span>Price</span></a>
+      <div>
+        <a href="index.html" class="active">Browse</a>
+        <a href="favorites.html">Favorites</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </nav>
+
+    <div class="user-bar">
+      <span>Logged in as:</span>
+      <select id="userSelect">
+        <option value="">Loading users...</option>
+      </select>
+    </div>
+
+    <div class="hero">
+      <h1>Find Your Perfect Phone</h1>
+      <p>
+        Browse 1800+ smartphones — filter by specs, compare prices, save
+        favorites.
+      </p>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="search" placeholder="e.g. iPhone, Galaxy..." />
+      </div>
+      <div class="filter-group">
+        <label>Brand</label>
+        <select id="brandFilter">
+          <option value="">All Brands</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>RAM (GB)</label>
+        <select id="ramFilter">
+          <option value="">Any</option>
+          <option value="2">2 GB</option>
+          <option value="3">3 GB</option>
+          <option value="4">4 GB</option>
+          <option value="6">6 GB</option>
+          <option value="8">8 GB</option>
+          <option value="12">12 GB</option>
+          <option value="16">16 GB</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Storage (GB)</label>
+        <select id="storageFilter">
+          <option value="">Any</option>
+          <option value="32">32 GB</option>
+          <option value="64">64 GB</option>
+          <option value="128">128 GB</option>
+          <option value="256">256 GB</option>
+          <option value="512">512 GB</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Min Price ($)</label>
+        <input type="number" id="minPrice" placeholder="0" />
+      </div>
+      <div class="filter-group">
+        <label>Max Price ($)</label>
+        <input type="number" id="maxPrice" placeholder="2000" />
+      </div>
+      <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+      <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+    </div>
+
+    <div class="container">
+      <div class="results-bar">
+        <span id="resultsCount">Loading...</span>
+      </div>
+      <div class="phones-grid" id="phonesGrid">
+        <div class="loading">Loading smartphones...</div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

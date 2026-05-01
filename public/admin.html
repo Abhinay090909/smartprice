@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartPrice — Admin</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="logo">Smart<span>Price</span></a>
+      <div>
+        <a href="index.html">Browse</a>
+        <a href="favorites.html">Favorites</a>
+        <a href="admin.html" class="active">Admin</a>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div
+        class="page-header"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <div>
+          <h1>Admin Panel</h1>
+          <p>Manage smartphone records in the database</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          + Add Smartphone
+        </button>
+      </div>
+
+      <!-- FILTERS -->
+      <div
+        style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap"
+      >
+        <input
+          type="text"
+          id="adminSearch"
+          placeholder="Search model name..."
+          style="
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-family: &quot;DM Sans&quot;, sans-serif;
+            outline: none;
+            flex: 1;
+            min-width: 200px;
+          "
+        />
+        <select
+          id="adminBrandFilter"
+          style="
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-family: &quot;DM Sans&quot;, sans-serif;
+            outline: none;
+          "
+        >
+          <option value="">All Brands</option>
+        </select>
+        <button class="btn btn-primary" onclick="applyAdminFilters()">
+          Search
+        </button>
+        <button class="btn btn-secondary" onclick="resetAdminFilters()">
+          Reset
+        </button>
+      </div>
+
+      <div
+        id="resultsCount"
+        style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem"
+      ></div>
+
+      <div
+        style="
+          overflow-x: auto;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+        "
+      >
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Model</th>
+              <th>Brand</th>
+              <th>RAM</th>
+              <th>Storage</th>
+              <th>Color</th>
+              <th>Unlocked</th>
+              <th>Price</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <tr>
+              <td
+                colspan="9"
+                style="text-align: center; color: var(--muted); padding: 2rem"
+              >
+                Loading...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <h2 id="modalTitle">Add Smartphone</h2>
+        <input type="hidden" id="editId" />
+        <div class="form-group">
+          <label>Model Name</label>
+          <input type="text" id="fModelName" placeholder="e.g. iPhone 16 Pro" />
+        </div>
+        <div class="form-group">
+          <label>Brand</label>
+          <select id="fBrand"></select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem">
+          <div class="form-group">
+            <label>RAM (GB)</label>
+            <input type="number" id="fRam" placeholder="8" />
+          </div>
+          <div class="form-group">
+            <label>Storage (GB)</label>
+            <input type="number" id="fStorage" placeholder="128" />
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem">
+          <div class="form-group">
+            <label>Price ($)</label>
+            <input type="number" id="fPrice" placeholder="699.99" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" id="fColor" placeholder="Black" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Unlocked</label>
+          <select id="fUnlocked">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="savePhone()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const API = "http://localhost:3000/api";
+      let brands = [];
+
+      async function init() {
+        const res = await fetch(`${API}/brands`);
+        brands = await res.json();
+
+        // Populate brand filters
+        const adminBrandFilter = document.getElementById("adminBrandFilter");
+        const fBrand = document.getElementById("fBrand");
+        brands.forEach((b) => {
+          adminBrandFilter.innerHTML += `<option value="${b.brand_name}">${b.brand_name}</option>`;
+          fBrand.innerHTML += `<option value="${b.brand_id}">${b.brand_name}</option>`;
+        });
+
+        loadPhones();
+      }
+
+      async function loadPhones(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const res = await fetch(`${API}/smartphones?${query}`);
+        const phones = await res.json();
+
+        document.getElementById("resultsCount").textContent =
+          `${phones.length} records shown`;
+
+        const tbody = document.getElementById("adminTableBody");
+        if (phones.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem;">No results found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = phones
+          .map(
+            (p) => `
+        <tr>
+            <td style="color:var(--muted)">#${p.phone_id}</td>
+            <td><strong>${p.model_name}</strong></td>
+            <td>${p.brand_name}</td>
+            <td>${p.ram_gb}GB</td>
+            <td>${p.storage_gb}GB</td>
+            <td>${p.color || "-"}</td>
+            <td>${p.unlocked ? "✅" : "❌"}</td>
+            <td style="color:var(--success)">$${parseFloat(p.price).toFixed(2)}</td>
+            <td>
+                <button class="btn btn-secondary" style="padding:0.3rem 0.8rem;font-size:0.8rem;margin-right:0.4rem"
+                    onclick="openEditModal(${p.phone_id})">Edit</button>
+                <button class="btn btn-danger" style="padding:0.3rem 0.8rem;font-size:0.8rem"
+                    onclick="deletePhone(${p.phone_id})">Delete</button>
+            </td>
+        </tr>
+    `,
+          )
+          .join("");
+      }
+
+      function applyAdminFilters() {
+        const params = {};
+        const search = document.getElementById("adminSearch").value;
+        const brand = document.getElementById("adminBrandFilter").value;
+        if (search) params.search = search;
+        if (brand) params.brand = brand;
+        loadPhones(params);
+      }
+
+      function resetAdminFilters() {
+        document.getElementById("adminSearch").value = "";
+        document.getElementById("adminBrandFilter").value = "";
+        loadPhones();
+      }
+
+      function openAddModal() {
+        document.getElementById("modalTitle").textContent = "Add Smartphone";
+        document.getElementById("editId").value = "";
+        document.getElementById("fModelName").value = "";
+        document.getElementById("fRam").value = "";
+        document.getElementById("fStorage").value = "";
+        document.getElementById("fPrice").value = "";
+        document.getElementById("fColor").value = "";
+        document.getElementById("fUnlocked").value = "true";
+        document.getElementById("modalOverlay").classList.add("active");
+      }
+
+      async function openEditModal(id) {
+        const res = await fetch(`${API}/smartphones/${id}`);
+        const p = await res.json();
+        document.getElementById("modalTitle").textContent = "Edit Smartphone";
+        document.getElementById("editId").value = p.phone_id;
+        document.getElementById("fModelName").value = p.model_name;
+        document.getElementById("fBrand").value = p.brand_id;
+        document.getElementById("fRam").value = p.ram_gb;
+        document.getElementById("fStorage").value = p.storage_gb;
+        document.getElementById("fPrice").value = p.price;
+        document.getElementById("fColor").value = p.color || "";
+        document.getElementById("fUnlocked").value = p.unlocked
+          ? "true"
+          : "false";
+        document.getElementById("modalOverlay").classList.add("active");
+      }
+
+      function closeModal() {
+        document.getElementById("modalOverlay").classList.remove("active");
+      }
+
+      async function savePhone() {
+        const id = document.getElementById("editId").value;
+        const body = {
+          model_name: document.getElementById("fModelName").value,
+          brand_id: document.getElementById("fBrand").value,
+          ram_gb: document.getElementById("fRam").value,
+          storage_gb: document.getElementById("fStorage").value,
+          price: document.getElementById("fPrice").value,
+          color: document.getElementById("fColor").value,
+          unlocked: document.getElementById("fUnlocked").value === "true",
+        };
+
+        if (!body.model_name || !body.brand_id || !body.price) {
+          showToast("Please fill in all required fields!");
+          return;
+        }
+
+        const method = id ? "PUT" : "POST";
+        const url = id ? `${API}/smartphones/${id}` : `${API}/smartphones`;
+
+        await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        closeModal();
+        showToast(id ? "Smartphone updated!" : "Smartphone added!");
+        loadPhones();
+      }
+
+      async function deletePhone(id) {
+        if (!confirm("Are you sure you want to delete this smartphone?"))
+          return;
+        await fetch(`${API}/smartphones/${id}`, { method: "DELETE" });
+        showToast("Smartphone deleted!");
+        loadPhones();
+      }
+
+      function showToast(msg) {
+        const toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      // Close modal on outside click
+      document
+        .getElementById("modalOverlay")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeModal();
+        });
+
+      init();
+    </script>
+  </body>
+</html>

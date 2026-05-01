@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartPrice — Favorites</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="logo">Smart<span>Price</span></a>
+      <div>
+        <a href="index.html">Browse</a>
+        <a href="favorites.html" class="active">Favorites</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </nav>
+
+    <div class="user-bar">
+      <span>Viewing favorites for:</span>
+      <select id="userSelect">
+        <option value="">Select user...</option>
+      </select>
+    </div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>My Favorites</h1>
+        <p>Smartphones you've saved for later</p>
+      </div>
+      <div class="results-bar">
+        <span id="resultsCount"></span>
+      </div>
+      <div class="phones-grid" id="favGrid">
+        <div class="loading">Select a user to view favorites.</div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const API = "http://localhost:3000/api";
+
+      async function loadUsers() {
+        const res = await fetch(`${API}/users`);
+        const users = await res.json();
+        const select = document.getElementById("userSelect");
+        select.innerHTML = '<option value="">Select user...</option>';
+        users.forEach((u) => {
+          select.innerHTML += `<option value="${u.user_id}">${u.name}</option>`;
+        });
+        select.addEventListener("change", () => {
+          if (select.value) loadFavorites(select.value);
+          else {
+            document.getElementById("favGrid").innerHTML =
+              '<div class="loading">Select a user to view favorites.</div>';
+            document.getElementById("resultsCount").textContent = "";
+          }
+        });
+      }
+
+      async function loadFavorites(userId) {
+        const grid = document.getElementById("favGrid");
+        grid.innerHTML = '<div class="loading">Loading...</div>';
+        const res = await fetch(`${API}/favorites/${userId}`);
+        const phones = await res.json();
+
+        document.getElementById("resultsCount").textContent =
+          `${phones.length} saved phones`;
+
+        if (phones.length === 0) {
+          grid.innerHTML =
+            '<div class="loading">No favorites yet. Browse phones and click ♥ to save!</div>';
+          return;
+        }
+
+        grid.innerHTML = phones
+          .map(
+            (p) => `
+        <div class="phone-card">
+            <div class="phone-brand">${p.brand_name}</div>
+            <div class="phone-name">${p.model_name}</div>
+            <div class="phone-specs">
+                <span class="spec-tag">📱 ${p.ram_gb}GB RAM</span>
+                <span class="spec-tag">💾 ${p.storage_gb}GB</span>
+                ${p.color ? `<span class="spec-tag">🎨 ${p.color}</span>` : ""}
+                ${p.unlocked ? `<span class="spec-tag">🔓 Unlocked</span>` : ""}
+            </div>
+            <div class="phone-footer">
+                <div class="phone-price">$${parseFloat(p.price).toFixed(2)}</div>
+                <button class="btn btn-danger" onclick="removeFav(${p.phone_id}, ${userId})">Remove</button>
+            </div>
+        </div>
+    `,
+          )
+          .join("");
+      }
+
+      async function removeFav(phoneId, userId) {
+        await fetch(`${API}/favorites`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, phone_id: phoneId }),
+        });
+        showToast("Removed from favorites");
+        loadFavorites(userId);
+      }
+
+      function showToast(msg) {
+        const toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      loadUsers();
+    </script>
+  </body>
+</html>

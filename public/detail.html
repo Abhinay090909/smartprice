@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartPrice — Phone Detail</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .detail-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 700px;
+        margin: 3rem auto;
+      }
+      .detail-brand {
+        font-size: 0.8rem;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      .detail-name {
+        font-family: "Syne", sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 2rem;
+      }
+      .specs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .spec-item {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+      }
+      .spec-label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.3rem;
+      }
+      .spec-value {
+        font-family: "Syne", sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      .price-big {
+        font-family: "Syne", sans-serif;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--success);
+        margin-bottom: 1.5rem;
+      }
+      .detail-actions {
+        display: flex;
+        gap: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="index.html" class="logo">Smart<span>Price</span></a>
+      <div>
+        <a href="index.html">Browse</a>
+        <a href="favorites.html">Favorites</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div id="detailContent">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const API = "http://localhost:3000/api";
+
+      async function loadDetail() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("id");
+        if (!id) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        const res = await fetch(`${API}/smartphones/${id}`);
+        const p = await res.json();
+
+        document.title = `SmartPrice — ${p.model_name}`;
+
+        document.getElementById("detailContent").innerHTML = `
+        <div class="detail-card">
+            <div class="detail-brand">${p.brand_name}</div>
+            <div class="detail-name">${p.model_name}</div>
+            <div class="price-big">$${parseFloat(p.price).toFixed(2)}</div>
+            <div class="specs-grid">
+                <div class="spec-item">
+                    <div class="spec-label">RAM</div>
+                    <div class="spec-value">${p.ram_gb} GB</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-label">Storage</div>
+                    <div class="spec-value">${p.storage_gb} GB</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-label">Color</div>
+                    <div class="spec-value">${p.color || "N/A"}</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-label">Unlocked</div>
+                    <div class="spec-value">${p.unlocked ? "✅ Yes" : "❌ No"}</div>
+                </div>
+            </div>
+            <div class="detail-actions">
+                <button class="btn btn-secondary" onclick="window.history.back()">← Back</button>
+                <button class="btn btn-primary" onclick="addToFav(${p.phone_id})">♥ Add to Favorites</button>
+            </div>
+        </div>
+    `;
+      }
+
+      async function addToFav(phoneId) {
+        const userId = localStorage.getItem("currentUser");
+        if (!userId) {
+          showToast("Please select a user on the browse page first!");
+          return;
+        }
+        await fetch(`${API}/favorites`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, phone_id: phoneId }),
+        });
+        showToast("Added to favorites ♥");
+      }
+
+      function showToast(msg) {
+        const toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      loadDetail();
+    </script>
+  </body>
+</html>
